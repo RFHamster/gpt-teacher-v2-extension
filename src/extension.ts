@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
-import { ItemsProvider, ItemData } from './tree_item_providers/ItemsProvider';
+import { ItemData } from './tree_item_providers/ItemsProvider';
 import { ItemWebviewPanel } from './panels/ItemWebviewPanel';
 import { StorageService } from './services/StorageService';
 import { LoginWebviewPanel } from './panels/LoginWebviewPanel';
+import { SidebarProvider } from './panels/SidebarProvider';
 
 export function activate(context: vscode.ExtensionContext) {
 	console.log('GPT Teacher extension is now active!');
@@ -10,26 +11,17 @@ export function activate(context: vscode.ExtensionContext) {
 	// Initialize storage service
 	const storageService = new StorageService(context);
 
-	// Set authentication context
-	const updateAuthContext = (isAuthenticated: boolean) => {
-		vscode.commands.executeCommand('setContext', 'gpt-teacher.authenticated', isAuthenticated);
-	};
+	// Create sidebar provider
+	const sidebarProvider = new SidebarProvider(context.extensionUri, storageService);
 
-	// Initialize with current auth state
-	updateAuthContext(storageService.isAuthenticated());
-
-	// Items provider (will be shown only when authenticated)
-	const itemsProvider = new ItemsProvider();
-
-	// Register the tree view (conditionally shown based on auth context)
-	const treeView = vscode.window.createTreeView('gpt-teacher-items', {
-		treeDataProvider: itemsProvider,
-		showCollapseAll: false
-	});
+	// Register the webview view provider
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider('gpt-teacher-sidebar-view', sidebarProvider)
+	);
 
 	// Register refresh command
 	const refreshCommand = vscode.commands.registerCommand('gpt-teacher.refreshItems', () => {
-		itemsProvider.refresh();
+		sidebarProvider.sendItemsToWebview();
 		vscode.window.showInformationMessage('Items refreshed!');
 	});
 
@@ -48,7 +40,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		if (confirm === 'Sim') {
 			await storageService.logout();
-			updateAuthContext(false);
+			sidebarProvider.sendItemsToWebview();
 			vscode.window.showInformationMessage('Logout realizado com sucesso!');
 		}
 	});
@@ -57,15 +49,13 @@ export function activate(context: vscode.ExtensionContext) {
 	const loginCommand = vscode.commands.registerCommand('gpt-teacher.login', () => {
 		const loginPanel = LoginWebviewPanel.createOrShow(context.extensionUri, storageService);
 
-		// When login is successful, update context
+		// When login is successful, update sidebar
 		loginPanel.onLoginSuccess(() => {
-			updateAuthContext(true);
 			vscode.window.showInformationMessage('Bem-vindo ao GPT Teacher!');
-			itemsProvider.refresh();
+			sidebarProvider.sendItemsToWebview();
 		});
 	});
 
-	context.subscriptions.push(treeView);
 	context.subscriptions.push(refreshCommand);
 	context.subscriptions.push(openItemCommand);
 	context.subscriptions.push(logoutCommand);
