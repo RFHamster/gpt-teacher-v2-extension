@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { StorageService } from '../services/StorageService';
+import { mockItemsByCategory } from '../models/ItemData';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
     _view?: vscode.WebviewView;
@@ -51,36 +52,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             const isAuthenticated = this._storageService.isAuthenticated();
             const userMetadata = this._storageService.getUserMetadata();
 
-            // Mock data - será substituído por dados reais depois
-            const items = [
-                {
-                    id: '1',
-                    title: 'Introdução ao TypeScript',
-                    description: 'Esta é a descrição completa do Item 1. Aqui você vai aprender os fundamentos do TypeScript.',
-                    miniDescription: 'Aprenda os fundamentos',
-                    is_done: true
-                },
-                {
-                    id: '2',
-                    title: 'Criando Extensões VSCode',
-                    description: 'Esta é a descrição completa do Item 2. Neste módulo você vai aprender a criar extensões para o Visual Studio Code.',
-                    miniDescription: 'Em progresso...',
-                    is_done: false
-                },
-                {
-                    id: '3',
-                    title: 'APIs e Integração',
-                    description: 'Esta é a descrição completa do Item 3. Aprenda a integrar sua extensão com APIs externas.',
-                    miniDescription: 'Não iniciado',
-                    is_done: false
-                }
-            ];
-
             this._view.webview.postMessage({
                 type: 'update',
                 isAuthenticated,
                 username: userMetadata?.username,
-                items
+                itemsByCategory: mockItemsByCategory
             });
         }
     }
@@ -205,11 +181,69 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             background-color: var(--vscode-button-secondaryHoverBackground);
         }
 
+        /* Category Group */
+        .category-group {
+            margin-bottom: 16px;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background-color: var(--vscode-sideBar-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .category-header:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+
+        .category-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .category-count {
+            font-size: 11px;
+            background-color: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+
+        .category-arrow {
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .category-arrow.expanded {
+            transform: rotate(90deg);
+        }
+
+        .category-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-left: 4px;
+        }
+
+        .category-items.collapsed {
+            display: none;
+        }
+
         /* Items List */
         .items-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
         }
 
         .item-card {
@@ -300,7 +334,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         let state = {
             isAuthenticated: false,
             username: null,
-            items: []
+            itemsByCategory: {},
+            expandedCategories: {}
         };
 
         // Request initial data
@@ -311,11 +346,17 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             const message = event.data;
 
             if (message.type === 'update') {
-                state = {
-                    isAuthenticated: message.isAuthenticated,
-                    username: message.username,
-                    items: message.items || []
-                };
+                state.isAuthenticated = message.isAuthenticated;
+                state.username = message.username;
+                state.itemsByCategory = message.itemsByCategory || {};
+
+                // Initialize all categories as expanded by default
+                if (!Object.keys(state.expandedCategories).length) {
+                    Object.keys(state.itemsByCategory).forEach(category => {
+                        state.expandedCategories[category] = true;
+                    });
+                }
+
                 render();
             }
         });
@@ -347,13 +388,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             } else {
                 container.innerHTML = '';
 
+                // Calculate total items
+                const totalItems = Object.values(state.itemsByCategory).reduce((sum, items) => sum + items.length, 0);
+
                 // Create header
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'header';
                 headerDiv.innerHTML = \`
                     <div class="user-info">
                         <span class="username">👤 \${state.username || 'Usuário'}</span>
-                        <span class="items-count">• \${state.items.length} itens</span>
+                        <span class="items-count">• \${totalItems} itens</span>
                     </div>
                 \`;
 
@@ -365,35 +409,72 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
                 container.appendChild(headerDiv);
 
-                // Create items list
+                // Create items list with categories
                 const itemsListDiv = document.createElement('div');
                 itemsListDiv.className = 'items-list';
 
-                if (state.items.length === 0) {
+                const categories = Object.keys(state.itemsByCategory);
+
+                if (categories.length === 0) {
                     itemsListDiv.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>Nenhum item disponível</p></div>';
                 } else {
-                    state.items.forEach(item => {
-                        const itemCard = document.createElement('div');
-                        itemCard.className = 'item-card';
-                        itemCard.innerHTML = \`
-                            <div class="item-header">
-                                <div class="item-icon">\${item.is_done ? '✅' : '⭕'}</div>
-                                <div class="item-content">
-                                    <div class="item-title">\${item.title}</div>
-                                    <div class="item-mini-desc">\${item.miniDescription || ''}</div>
-                                    <span class="item-status \${item.is_done ? 'status-done' : 'status-pending'}">
-                                        \${item.is_done ? 'Concluído' : 'Pendente'}
-                                    </span>
-                                </div>
+                    categories.forEach(categoryName => {
+                        const items = state.itemsByCategory[categoryName];
+                        const isExpanded = state.expandedCategories[categoryName];
+
+                        // Category group container
+                        const categoryGroup = document.createElement('div');
+                        categoryGroup.className = 'category-group';
+
+                        // Category header
+                        const categoryHeader = document.createElement('div');
+                        categoryHeader.className = 'category-header';
+                        categoryHeader.innerHTML = \`
+                            <div class="category-title">
+                                <span>\${categoryName}</span>
+                                <span class="category-count">\${items.length}</span>
                             </div>
+                            <span class="category-arrow \${isExpanded ? 'expanded' : ''}">▶</span>
                         \`;
-                        itemCard.addEventListener('click', () => openItem(item));
-                        itemsListDiv.appendChild(itemCard);
+                        categoryHeader.addEventListener('click', () => toggleCategory(categoryName));
+
+                        categoryGroup.appendChild(categoryHeader);
+
+                        // Category items
+                        const categoryItems = document.createElement('div');
+                        categoryItems.className = \`category-items \${isExpanded ? '' : 'collapsed'}\`;
+
+                        items.forEach(item => {
+                            const itemCard = document.createElement('div');
+                            itemCard.className = 'item-card';
+                            itemCard.innerHTML = \`
+                                <div class="item-header">
+                                    <div class="item-icon">\${item.is_done ? '✅' : '⭕'}</div>
+                                    <div class="item-content">
+                                        <div class="item-title">\${item.title}</div>
+                                        <div class="item-mini-desc">\${item.miniDescription || ''}</div>
+                                        <span class="item-status \${item.is_done ? 'status-done' : 'status-pending'}">
+                                            \${item.is_done ? 'Concluído' : 'Pendente'}
+                                        </span>
+                                    </div>
+                                </div>
+                            \`;
+                            itemCard.addEventListener('click', () => openItem(item));
+                            categoryItems.appendChild(itemCard);
+                        });
+
+                        categoryGroup.appendChild(categoryItems);
+                        itemsListDiv.appendChild(categoryGroup);
                     });
                 }
 
                 container.appendChild(itemsListDiv);
             }
+        }
+
+        function toggleCategory(categoryName) {
+            state.expandedCategories[categoryName] = !state.expandedCategories[categoryName];
+            render();
         }
 
         function login() {

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ItemData } from './tree_item_providers/ItemsProvider';
+import { ItemData } from './models/ItemData';
 import { ItemWebviewPanel } from './panels/ItemWebviewPanel';
 import { StorageService } from './services/StorageService';
 import { LoginWebviewPanel } from './panels/LoginWebviewPanel';

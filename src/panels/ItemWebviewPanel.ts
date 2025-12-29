@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ItemData } from '../tree_item_providers/ItemsProvider';
+import { ItemData } from '../models/ItemData';
 
 export class ItemWebviewPanel {
     public static currentPanel: ItemWebviewPanel | undefined;
