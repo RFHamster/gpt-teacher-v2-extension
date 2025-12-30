@@ -82,6 +82,10 @@ export class RouteService {
         this.state.is_authenticated = this.storageService.isAuthenticated();
     }
 
+    public syncState(): void {
+        this.syncAuthState();
+    }
+
     public getState(): Readonly<RouteState> {
         return { ...this.state };
     }
@@ -101,6 +105,8 @@ export class RouteService {
     }
 
     private resolveRoute(): RouteType {
+        this.syncState();
+
         // Ordena as rotas por prioridade (maior primeiro)
         const sortedRoutes = Array.from(this.routes.entries())
             .sort(([, a], [, b]) => b.priority - a.priority);
@@ -127,20 +133,13 @@ export class RouteService {
     }
 
     public render(context: RouteContext, data?: any): string {
-        // Sincroniza o estado de autentica��o antes de resolver a rota
-        this.syncAuthState();
-
-        // Resolve qual rota mostrar baseado no estado atual
         const route = this.resolveRoute();
-
-        // Cria e renderiza a p�gina
         const page = this.createPage(route, context);
 
         return page.renderComplete(context.webview, data);
     }
 
     public getCurrentRoute(): RouteType {
-        this.syncAuthState();
         return this.resolveRoute();
     }
 }
