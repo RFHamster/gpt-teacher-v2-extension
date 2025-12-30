@@ -1,0 +1,212 @@
+/* Dashboard Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--vscode-font-family);
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-editor-background);
+    padding: 16px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 100%;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.username {
+    font-weight: 600;
+    color: var(--vscode-textLink-foreground);
+}
+
+.items-count {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+}
+
+/* Buttons */
+.btn {
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: var(--vscode-font-family);
+    transition: background-color 0.2s;
+}
+
+.btn:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
+
+.btn-secondary {
+    background-color: var(--vscode-button-secondaryBackground);
+    color: var(--vscode-button-secondaryForeground);
+}
+
+.btn-secondary:hover {
+    background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+/* Category Group */
+.category-group {
+    margin-bottom: 16px;
+}
+
+.category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background-color: var(--vscode-sideBar-background);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+}
+
+.category-header:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.category-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.category-count {
+    font-size: 11px;
+    background-color: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 8px;
+}
+
+.category-arrow {
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+.category-arrow.expanded {
+    transform: rotate(90deg);
+}
+
+.category-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 4px;
+}
+
+.category-items.collapsed {
+    display: none;
+}
+
+/* Items List */
+.items-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.item-card {
+    background-color: var(--vscode-editor-inactiveSelectionBackground);
+    border: 1px solid var(--vscode-panel-border);
+    border-radius: 6px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.item-card:hover {
+    background-color: var(--vscode-list-hoverBackground);
+    border-color: var(--vscode-textLink-foreground);
+}
+
+.item-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.item-icon {
+    font-size: 20px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.item-content {
+    flex: 1;
+}
+
+.item-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--vscode-foreground);
+}
+
+.item-mini-desc {
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+    font-style: italic;
+}
+
+.item-status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.status-done {
+    background-color: rgba(0, 255, 0, 0.2);
+    color: var(--vscode-charts-green);
+}
+
+.status-pending {
+    background-color: rgba(255, 255, 0, 0.2);
+    color: var(--vscode-charts-yellow);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--vscode-descriptionForeground);
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
