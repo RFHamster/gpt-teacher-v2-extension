@@ -41,6 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
 		if (confirm === 'Sim') {
 			await storageService.logout();
 			sidebarProvider.sendItemsToWebview();
+			sidebarProvider.updateSidebarWebViewHtml();
 			vscode.window.showInformationMessage('Logout realizado com sucesso!');
 		}
 	});
@@ -53,6 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
 		loginPanel.onLoginSuccess(() => {
 			vscode.window.showInformationMessage('Bem-vindo ao GPT Teacher!');
 			sidebarProvider.sendItemsToWebview();
+			sidebarProvider.updateSidebarWebViewHtml();
 		});
 	});
 

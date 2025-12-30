@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';">
+    <title>GPT Teacher - Welcome</title>
+    <link rel="stylesheet" href="{{styleResetUri}}">
+    <link rel="stylesheet" href="{{styleVSCodeUri}}">
+    <link rel="stylesheet" href="{{styleMainUri}}">
+</head>
+<body>
+    <div class="container">
+        <div class="welcome-screen">
+            <div class="welcome-icon">📚</div>
+            <h1 class="welcome-title">Bem-vindo ao GPT Teacher!</h1>
+            <p class="welcome-subtitle">Faça login para acessar seus itens e começar a aprender.</p>
+            <button class="btn" id="loginBtn">Fazer Login</button>
+            <div class="dev-info">
+                <strong>Dev:</strong> rhuan / rhuan
+            </div>
+        </div>
+    </div>
+    <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+</html>

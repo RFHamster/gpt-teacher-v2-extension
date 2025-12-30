@@ -3,6 +3,14 @@ import * as vscode from 'vscode';
 import { StorageService } from '../services/StorageService';
 import { mockItemsByCategory } from '../models/ItemData';
 
+type PageType = 'welcome' | 'item_dashboard';
+
+interface PageAssets {
+    html: vscode.Uri;
+    css: vscode.Uri;
+    js: vscode.Uri;
+}
+
 export class SidebarProvider implements vscode.WebviewViewProvider {
     _view?: vscode.WebviewView;
     _doc?: vscode.TextDocument;
@@ -10,7 +18,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     constructor(
         private readonly _extensionUri: vscode.Uri,
         private readonly _storageService: StorageService
-    ) {}
+    ) { }
 
     public resolveWebviewView(webviewView: vscode.WebviewView) {
         this._view = webviewView;
@@ -20,10 +28,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             localResourceRoots: [this._extensionUri]
         };
 
-        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        this.updateSidebarWebViewHtml()
+
 
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (data) => {
+
             switch (data.type) {
                 case 'openItem': {
                     vscode.commands.executeCommand('gpt-teacher.openItem', data.item);
@@ -66,26 +76,47 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         this._view = panel;
     }
 
-    private _getHtmlForWebview(webview: vscode.Webview): string {
+    public updateSidebarWebViewHtml() {
+        if (!this._view) {
+            return;
+        }
+
+        const isAuthenticated = this._storageService.isAuthenticated();
+        if (isAuthenticated) {
+            this._view.webview.html = this._getHtmlForWebview(this._view.webview, 'item_dashboard');
+        } else {
+            this._view.webview.html = this._getHtmlForWebview(this._view.webview, 'welcome');
+        }
+
+    }
+
+
+    //Remove from here latter
+
+    private _getPageAssets(page: PageType): PageAssets {
+        const basePath = vscode.Uri.joinPath(this._extensionUri, 'src', 'pages', page);
+
+        return {
+            html: vscode.Uri.joinPath(basePath, `${page}.html`),
+            css: vscode.Uri.joinPath(basePath, `${page}.css`),
+            js: vscode.Uri.joinPath(basePath, `${page}.js`),
+        };
+    }
+
+    private _getHtmlForWebview(webview: vscode.Webview, page: PageType): string {
         const styleResetUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css')
         );
         const styleVSCodeUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css')
         );
-        const styleMainUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this._extensionUri, 'src', 'pages', 'gpt_teacher_core', 'gptTeacher.css')
-        );
-
-        const scriptUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this._extensionUri, 'src', 'pages', 'gpt_teacher_core', 'gptTeacher.js')
-        );
-
         const nonce = getNonce();
 
-        // Lê o template HTML usando vscode.Uri
-        const htmlUri = vscode.Uri.joinPath(this._extensionUri, 'src', 'pages', 'gpt_teacher_core', 'gptTeacher.html');
-        let html = fs.readFileSync(htmlUri.fsPath, 'utf8');
+        var page_assets_url = this._getPageAssets(page);
+
+        const styleMainUri = webview.asWebviewUri(page_assets_url.css);
+        const scriptUri = webview.asWebviewUri(page_assets_url.js);
+        let html = fs.readFileSync(page_assets_url.html.fsPath, 'utf8');
 
         // Substitui os placeholders
         html = html

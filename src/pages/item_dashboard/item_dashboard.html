@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src {{cspSource}}; script-src 'nonce-{{nonce}}';">
+    <title>GPT Teacher - Dashboard</title>
+    <link rel="stylesheet" href="{{styleResetUri}}">
+    <link rel="stylesheet" href="{{styleVSCodeUri}}">
+    <link rel="stylesheet" href="{{styleMainUri}}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="user-info">
+                <span class="username">👤 <span id="usernameText">Usuário</span></span>
+                <span class="items-count">• <span id="itemsCountText">0</span> itens</span>
+            </div>
+            <button class="btn btn-secondary" id="logoutBtn">Sair</button>
+        </div>
+        <div class="items-list" id="itemsList">
+            <!-- Items will be inserted here by JavaScript -->
+        </div>
+    </div>
+    <script nonce="{{nonce}}" src="{{scriptUri}}"></script>
+</body>
+</html>

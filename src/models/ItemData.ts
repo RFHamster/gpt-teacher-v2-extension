@@ -17,7 +17,7 @@ export const mockItemsByCategory: ItemsByCategory = {
             id: '1',
             title: 'Introdução ao TypeScript',
             description: 'Aprenda os fundamentos do TypeScript para criar extensões robustas.',
-            miniDescription: 'Fundamentos da linguagem',
+            miniDescription: 'Fundamentos da linguagem, Fundamentos da linguagemFundamentos da linguagemFundamentos da linguagemFundamentos da linguagemFundamentos da linguagemFundamentos da linguagemFundamentos da linguagemFundamentos da linguagemFundamentos da linguagemFundamentos da linguagem',
             is_done: true
         },
         {
