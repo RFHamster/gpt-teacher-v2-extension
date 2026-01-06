@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { BasePage } from '../views/BasePage';
 import { WelcomePage } from '../views/WelcomePage';
 import { ItemDashboardPage } from '../views/ItemDashboardPage';
+import { ChatPage } from '../views/ChatPage';
 import { StorageService } from './StorageService';
 
 export type RouteType = 'welcome' | 'item_dashboard' | 'chat';
@@ -15,6 +16,7 @@ export interface RouteState {
 export interface RouteContext {
     extensionUri: vscode.Uri;
     storageService: StorageService;
+    context: vscode.ExtensionContext;
     webview: vscode.Webview;
 }
 
@@ -34,13 +36,12 @@ export class RouteService {
     private readonly routes: Map<RouteType, RouteConfig> = new Map([
         // Priority: quanto maior, mais priorit�rio (checado primeiro)
 
-        // Chat tem prioridade m�xima quando ativo
+        // Chat tem prioridade máxima quando ativo
         ['chat', {
             priority: 100,
             resolver: (state) => state.is_authenticated && state.is_on_chat,
-            factory: ({ extensionUri, storageService }) => {
-                // TODO: Implementar ChatPage quando necess�rio
-                throw new Error('ChatPage not implemented yet');
+            factory: ({ extensionUri, storageService, context }) => {
+                return new ChatPage(extensionUri, storageService, context, this.state.current_item_id);
             }
         }],
 

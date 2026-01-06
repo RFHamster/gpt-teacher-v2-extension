@@ -20,7 +20,10 @@
                 if (itemData) {
                     try {
                         const item = JSON.parse(itemData);
+                        // Open item detail panel
                         vscode.postMessage({ type: 'openItem', item });
+                        // Open chat in sidebar
+                        vscode.postMessage({ type: 'openChat', itemId: item.id });
                     } catch (e) {
                         console.error('Error parsing item data:', e);
                     }

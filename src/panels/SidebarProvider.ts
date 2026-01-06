@@ -10,7 +10,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-        private readonly _storageService: StorageService
+        private readonly _storageService: StorageService,
+        private readonly _context: vscode.ExtensionContext
     ) {
         this._routeService = new RouteService(_storageService);
     }
@@ -32,6 +33,22 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             switch (data.type) {
                 case 'openItem': {
                     vscode.commands.executeCommand('gpt-teacher.openItem', data.item);
+                    break;
+                }
+                case 'openChat': {
+                    vscode.commands.executeCommand('gpt-teacher.openChat', data.itemId);
+                    break;
+                }
+                case 'closeChat': {
+                    vscode.commands.executeCommand('gpt-teacher.closeChat');
+                    break;
+                }
+                case 'sendChatMessage': {
+                    vscode.commands.executeCommand('gpt-teacher.sendChatMessage', data.sessionId, data.itemId, data.content);
+                    break;
+                }
+                case 'openItemFromChat': {
+                    vscode.commands.executeCommand('gpt-teacher.openItemFromChat', data.itemId);
                     break;
                 }
                 case 'login': {
@@ -72,9 +89,32 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         const context = {
             extensionUri: this._extensionUri,
             storageService: this._storageService,
+            context: this._context,
             webview: this._view.webview,
         };
 
         this._view.webview.html = this._routeService.render(context);
+    }
+
+    public openChat(itemId: string) {
+        console.log('[SidebarProvider] openChat called with itemId:', itemId);
+        this._routeService.openChat(itemId);
+        this.updateSidebarWebViewHtml();
+    }
+
+    public closeChat() {
+        console.log('[SidebarProvider] closeChat called');
+        this._routeService.closeChat();
+        this.updateSidebarWebViewHtml();
+    }
+
+    public sendChatMessage(message: any) {
+        // Optionally send message to webview to update UI
+        if (this._view) {
+            this._view.webview.postMessage({
+                type: 'chatMessageReceived',
+                message: message
+            });
+        }
     }
 }
