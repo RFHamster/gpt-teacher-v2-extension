@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { BasePage } from './BasePage';
-import { ItemData, ItemsByCategory } from '../models/ItemData';
+import { ItemData, ItemsByCategory, CategoryData } from '../models/ItemData';
 import { StorageService } from '../services/StorageService';
 import { ItemDashboardService } from '../services/ItemDashboardService';
 
@@ -46,7 +46,6 @@ export class ItemDashboardPage extends BasePage {
         return `
             <div class="item-card" data-item='${itemJson}'>
                 <div class="item-header">
-                    <div class="item-icon">${item.is_done ? '✅' : '⭕'}</div>
                     <div class="item-content">
                         <div class="item-title">${this.escapeHtml(item.title)}</div>
                         <div class="item-mini-desc">${this.escapeHtml(item.miniDescription || '')}</div>
@@ -59,20 +58,25 @@ export class ItemDashboardPage extends BasePage {
         `;
     }
 
-    private renderCategoryGroup(categoryName: string, items: ItemData[], isExpanded: boolean = true): string {
-        const itemsHtml = items.map(item => this.renderItemCard(item)).join('');
-        const categoryId = this.escapeHtml(categoryName).replace(/\s+/g, '-');
+    private renderCategoryGroup(categoryId: string, categoryData: CategoryData, isExpanded: boolean = false): string {
+        const itemsHtml = categoryData.items.map((item: ItemData) => this.renderItemCard(item)).join('');
+        const categoryIdClean = this.escapeHtml(categoryId).replace(/\s+/g, '-');
+
+        // Use pending_items directly from API response (only show if it exists)
+        const pendingCountHtml = categoryData.pending_items !== undefined
+            ? `<span class="category-count">${categoryData.pending_items} pendente${categoryData.pending_items !== 1 ? 's' : ''}</span>`
+            : '';
 
         return `
             <div class="category-group">
-                <div class="category-header" data-category="${this.escapeHtml(categoryName)}">
+                <div class="category-header" data-category="${this.escapeHtml(categoryId)}">
                     <div class="category-title">
-                        <span>${this.escapeHtml(categoryName)}</span>
-                        <span class="category-count">${items.length}</span>
+                        <span>${this.escapeHtml(categoryData.title)}</span>
+                        ${pendingCountHtml}
                     </div>
-                    <span class="category-arrow ${isExpanded ? 'expanded' : ''}" data-arrow="${categoryId}">▶</span>
+                    <span class="category-arrow ${isExpanded ? 'expanded' : ''}" data-arrow="${categoryIdClean}">▶</span>
                 </div>
-                <div class="category-items ${isExpanded ? '' : 'collapsed'}" data-items="${categoryId}">
+                <div class="category-items ${isExpanded ? '' : 'collapsed'}" data-items="${categoryIdClean}">
                     ${itemsHtml}
                 </div>
             </div>
@@ -80,9 +84,9 @@ export class ItemDashboardPage extends BasePage {
     }
 
     private renderItemsList(itemsByCategory: ItemsByCategory, expandedCategories: { [key: string]: boolean }): string {
-        const categories = Object.keys(itemsByCategory);
+        const categoryIds = Object.keys(itemsByCategory);
 
-        if (categories.length === 0) {
+        if (categoryIds.length === 0) {
             return `
                 <div class="empty-state">
                     <div class="empty-state-icon">📭</div>
@@ -91,10 +95,10 @@ export class ItemDashboardPage extends BasePage {
             `;
         }
 
-        const categoriesHtml = categories.map(categoryName => {
-            const items = itemsByCategory[categoryName];
-            const isExpanded = expandedCategories[categoryName] !== false; // default true
-            return this.renderCategoryGroup(categoryName, items, isExpanded);
+        const categoriesHtml = categoryIds.map(categoryId => {
+            const categoryData = itemsByCategory[categoryId];
+            const isExpanded = expandedCategories[categoryId] === true; // default false
+            return this.renderCategoryGroup(categoryId, categoryData, isExpanded);
         }).join('');
 
         return categoriesHtml;
@@ -116,15 +120,12 @@ export class ItemDashboardPage extends BasePage {
 
         const { username, itemsByCategory, expandedCategories } = data;
 
-        // Initialize all categories as expanded by default
+        // Initialize all categories as collapsed by default
         Object.keys(itemsByCategory).forEach(category => {
             if (expandedCategories[category] === undefined) {
                 expandedCategories[category] = false;
             }
         });
-
-        const totalItems = Object.values(itemsByCategory)
-            .reduce((sum, items) => sum + items.length, 0);
 
         const itemsListHtml = this.renderItemsList(itemsByCategory, expandedCategories);
 
@@ -132,7 +133,6 @@ export class ItemDashboardPage extends BasePage {
             <div class="header">
                 <div class="user-info">
                     <span class="username">👤 <span id="usernameText">${this.escapeHtml(username)}</span></span>
-                    <span class="items-count">• <span id="itemsCountText">${totalItems}</span> itens</span>
                 </div>
                 <button class="btn btn-secondary" id="logoutBtn">Sair</button>
             </div>

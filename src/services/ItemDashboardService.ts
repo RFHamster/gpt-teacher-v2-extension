@@ -15,15 +15,15 @@ export class ItemDashboardService {
 
     /**
      * Retorna o estado de expansão das categorias
-     * Por padrão, todas as categorias começam expandidas
+     * Por padrão, todas as categorias começam fechadas
      */
     public getExpandedCategories(itemsByCategory?: ItemsByCategory): ExpandedCategoriesState {
         const items = itemsByCategory || this.getItemsByCategory();
         const expandedState: ExpandedCategoriesState = {};
 
-        // Inicializa todas as categorias como expandidas
+        // Inicializa todas as categorias como fechadas
         Object.keys(items).forEach(category => {
-            expandedState[category] = true;
+            expandedState[category] = false;
         });
 
         return expandedState;

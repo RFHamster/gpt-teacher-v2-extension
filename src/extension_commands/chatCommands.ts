@@ -27,8 +27,9 @@ export function registerChatCommands(
 
             // Find item title from mock data
             let itemTitle = `Item ${itemId}`;
-            for (const category in mockItemsByCategory) {
-                const item = mockItemsByCategory[category].find(i => i.id === itemId);
+            for (const categoryId in mockItemsByCategory) {
+                const category = mockItemsByCategory[categoryId];
+                const item = category.items.find(i => i.id === itemId);
                 if (item) {
                     itemTitle = item.title;
                     break;
@@ -116,8 +117,9 @@ export function registerChatCommands(
         'gpt-teacher.openItemFromChat',
         (itemId: string) => {
             // Find item data
-            for (const category in mockItemsByCategory) {
-                const item = mockItemsByCategory[category].find(i => i.id === itemId);
+            for (const categoryId in mockItemsByCategory) {
+                const category = mockItemsByCategory[categoryId];
+                const item = category.items.find(i => i.id === itemId);
                 if (item) {
                     ItemWebviewPanel.createOrShow(extensionUri, item);
                     break;
