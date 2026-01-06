@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { ChatSessionMetadata, ChatMessage } from '../models/ChatData';
 
 export class ChatService {
@@ -49,6 +50,10 @@ export class ChatService {
     public async sendMessage(sessionId: string, content: string): Promise<ChatMessage> {
         console.log('[ChatService] sendMessage called with:', { sessionId, content });
 
+        // Get current code from active editor
+        const currentCode = this.getCurrentEditorCode();
+        console.log('[ChatService] Current editor code:', currentCode);
+
         // Simulate API delay
         await this.delay(500);
 
@@ -91,6 +96,40 @@ export class ChatService {
         // Simple response selection based on message length
         const index = userMessage.length % responses.length;
         return responses[index];
+    }
+
+    /**
+     * Get code from currently active editor in VSCode
+     * Returns selected text if there's a selection, otherwise returns full document
+     */
+    private getCurrentEditorCode(): { code: string; fileName: string; selection: boolean } | null {
+        const editor = vscode.window.activeTextEditor;
+
+        if (!editor) {
+            console.log('[ChatService] No active editor found');
+            return null;
+        }
+
+        const document = editor.document;
+        const selection = editor.selection;
+
+        // Check if there's a selection
+        if (!selection.isEmpty) {
+            const selectedText = document.getText(selection);
+            return {
+                code: selectedText,
+                fileName: document.fileName,
+                selection: true
+            };
+        }
+
+        // Return full document if no selection
+        const fullText = document.getText();
+        return {
+            code: fullText,
+            fileName: document.fileName,
+            selection: false
+        };
     }
 
     /**

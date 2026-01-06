@@ -119,7 +119,7 @@ export class ItemDashboardPage extends BasePage {
         // Initialize all categories as expanded by default
         Object.keys(itemsByCategory).forEach(category => {
             if (expandedCategories[category] === undefined) {
-                expandedCategories[category] = true;
+                expandedCategories[category] = false;
             }
         });
 
