@@ -115,7 +115,7 @@ export class ChatPage extends BasePage {
                             📄 Abrir Descrição
                         </button>
                         <button class="btn btn-danger" id="closeChatBtn" title="Sair do chat">
-                            ✕ Fechar chat
+                            Fechar chat
                         </button>
                     </div>
                 </div>
