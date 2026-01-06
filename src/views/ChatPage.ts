@@ -109,17 +109,13 @@ export class ChatPage extends BasePage {
                 <div class="chat-header">
                     <div class="chat-header-info">
                         <div class="chat-title">${this.escapeHtml(session.itemTitle)}</div>
-                        <div class="chat-status">
-                            <span class="status-indicator ${session.status === 'active' ? 'status-active' : 'status-ended'}"></span>
-                            <span class="status-text">${session.status === 'active' ? 'Ativo' : 'Encerrado'}</span>
-                        </div>
                     </div>
                     <div class="chat-header-actions">
                         <button class="btn btn-secondary" id="openItemBtn" title="Abrir descrição do item">
                             📄 Abrir Descrição
                         </button>
                         <button class="btn btn-danger" id="closeChatBtn" title="Sair do chat">
-                            ✕
+                            ✕ Fechar chat
                         </button>
                     </div>
                 </div>
