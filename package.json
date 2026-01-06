@@ -24,23 +24,12 @@
     "views": {
       "gpt-teacher-sidebar": [
         {
-          "id": "gpt-teacher-welcome",
-          "name": "Bem-vindo",
-          "when": "!gpt-teacher.authenticated"
-        },
-        {
-          "id": "gpt-teacher-items",
-          "name": "Items",
-          "when": "gpt-teacher.authenticated"
+          "type": "webview",
+          "id": "gpt-teacher-sidebar-view",
+          "name": "GPT Teacher"
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "gpt-teacher-welcome",
-        "contents": "Bem-vindo ao GPT Teacher!\n\nVocê precisa fazer login para continuar.\n\n[Fazer Login](command:gpt-teacher.login)\n\nCredenciais de desenvolvimento:\nUsuário: rhuan\nSenha: rhuan"
-      }
-    ],
     "commands": [
       {
         "command": "gpt-teacher.login",

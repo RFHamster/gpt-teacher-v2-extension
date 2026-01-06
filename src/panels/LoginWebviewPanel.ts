@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { AuthService, LoginCredentials, AuthResponse } from './services/AuthService';
-import { StorageService } from './services/StorageService';
+import { AuthService, LoginCredentials, AuthResponse } from '../services/AuthService';
+import { StorageService } from '../services/StorageService';
 
 export class LoginWebviewPanel {
     public static currentPanel: LoginWebviewPanel | undefined;

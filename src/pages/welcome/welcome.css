@@ -1,0 +1,69 @@
+/* Welcome Screen Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--vscode-font-family);
+    color: var(--vscode-foreground);
+    background-color: var(--vscode-editor-background);
+    padding: 16px;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 100%;
+}
+
+.welcome-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    text-align: center;
+}
+
+.welcome-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+}
+
+.welcome-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--vscode-textLink-foreground);
+}
+
+.welcome-subtitle {
+    font-size: 14px;
+    color: var(--vscode-descriptionForeground);
+    margin-bottom: 24px;
+}
+
+.dev-info {
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--vscode-descriptionForeground);
+}
+
+/* Button */
+.btn {
+    background-color: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: var(--vscode-font-family);
+    transition: background-color 0.2s;
+}
+
+.btn:hover {
+    background-color: var(--vscode-button-hoverBackground);
+}
