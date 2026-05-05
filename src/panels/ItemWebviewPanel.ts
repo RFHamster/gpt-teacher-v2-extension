@@ -42,6 +42,9 @@ export class ItemWebviewPanel {
     }
 
     private _getHtmlContent(itemData: ItemData): string {
+        const statusLabel = itemData.is_done ? 'Concluído' : 'Pendente';
+        const statusClass = itemData.is_done ? 'status-done' : 'status-pending';
+
         return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -49,61 +52,98 @@ export class ItemWebviewPanel {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${itemData.title}</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: var(--vscode-font-family);
             color: var(--vscode-foreground);
             background-color: var(--vscode-editor-background);
-            padding: 20px;
+            padding: 32px 40px;
             line-height: 1.6;
+            max-width: 780px;
         }
+
+        .header {
+            margin-bottom: 28px;
+        }
+
+        .badge-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 20px;
+        }
+
+        .status-done {
+            background-color: rgba(0, 200, 100, 0.15);
+            color: var(--vscode-charts-green);
+        }
+
+        .status-pending {
+            background-color: rgba(255, 200, 0, 0.15);
+            color: var(--vscode-charts-yellow);
+        }
+
         h1 {
+            font-size: 1.6em;
+            font-weight: 700;
             color: var(--vscode-editor-foreground);
-            border-bottom: 2px solid var(--vscode-textLink-foreground);
-            padding-bottom: 10px;
+            margin-bottom: 6px;
+            line-height: 1.3;
         }
-        .item-id {
+
+        .mini-desc {
+            font-size: 13px;
             color: var(--vscode-descriptionForeground);
-            font-size: 0.9em;
-            margin-bottom: 20px;
+            font-style: italic;
         }
-        .description {
-            background-color: var(--vscode-editor-inactiveSelectionBackground);
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 20px;
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--vscode-panel-border);
+            margin: 24px 0;
         }
-        .section {
-            margin-top: 30px;
-        }
-        .section h2 {
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
             color: var(--vscode-textLink-foreground);
-            font-size: 1.2em;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .problem-box {
+            background-color: var(--vscode-editor-inactiveSelectionBackground);
+            border-left: 3px solid var(--vscode-textLink-foreground);
+            border-radius: 0 6px 6px 0;
+            padding: 16px 20px;
+            font-size: 14px;
+            line-height: 1.75;
         }
     </style>
 </head>
 <body>
-    <h1>${itemData.title}</h1>
-    <div class="item-id">ID: ${itemData.id}</div>
+    <div class="header">
+        <div class="badge-row">
+            <span class="status-badge ${statusClass}">${statusLabel}</span>
+        </div>
+        <h1>${itemData.title}</h1>
+        <p class="mini-desc">${itemData.miniDescription || ''}</p>
+    </div>
 
-    <div class="description">
-        <h2>Descrição</h2>
+    <hr class="divider">
+
+    <p class="section-label">Problema</p>
+    <div class="problem-box">
         <p>${itemData.description}</p>
-    </div>
-
-    <div class="section">
-        <h2>Conteúdo Adicional</h2>
-        <p>Aqui você pode adicionar mais informações sobre este item.</p>
-        <p>Este é um exemplo de página de detalhes que pode ser customizada conforme sua necessidade.</p>
-    </div>
-
-    <div class="section">
-        <h2>Recursos</h2>
-        <ul>
-            <li>Recurso 1 do ${itemData.title}</li>
-            <li>Recurso 2 do ${itemData.title}</li>
-            <li>Recurso 3 do ${itemData.title}</li>
-        </ul>
     </div>
 </body>
 </html>`;
