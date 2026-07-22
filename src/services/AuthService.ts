@@ -1,3 +1,5 @@
+import { config } from '../config';
+
 export interface LoginCredentials {
     username: string;
     password: string;
@@ -9,36 +11,55 @@ export interface AuthResponse {
     message?: string;
 }
 
+interface TokenResponse {
+    access_token: string;
+    token_type: string;
+}
+
+interface ErrorResponse {
+    detail: string;
+}
+
+const CLIENT_ID = 'STUDENT';
+
 export class AuthService {
-    // Hardcoded credentials - será substituído por integração real depois
-    private static readonly HARDCODED_USERNAME = 'rhuan';
-    private static readonly HARDCODED_PASSWORD = 'rhuan';
-
     public static async login(credentials: LoginCredentials): Promise<AuthResponse> {
-        // Simula delay de rede
-        await new Promise(resolve => setTimeout(resolve, 500));
+        try {
+            const body = new URLSearchParams();
+            body.append('username', credentials.username);
+            body.append('password', credentials.password);
+            body.append('client_id', CLIENT_ID);
 
-        if (credentials.username === this.HARDCODED_USERNAME &&
-            credentials.password === this.HARDCODED_PASSWORD) {
-            // Gera um token simples (será substituído por token real da API)
-            const token = this.generateToken(credentials.username);
+            const response = await fetch(`${config.BACKEND_URL}${config.API_ENDPOINTS.LOGIN}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: body.toString()
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null) as ErrorResponse | null;
+                return {
+                    success: false,
+                    message: errorData?.detail || 'Usuário ou senha incorretos'
+                };
+            }
+
+            const data = await response.json() as TokenResponse;
 
             return {
                 success: true,
-                token: token,
+                token: data.access_token,
                 message: 'Login realizado com sucesso!'
             };
+
+        } catch (error) {
+            console.error('[AuthService] Erro de conexão:', error);
+            return {
+                success: false,
+                message: 'Não foi possível conectar ao servidor. Verifique se o backend está rodando.'
+            };
         }
-
-        return {
-            success: false,
-            message: 'Usuário ou senha incorretos'
-        };
-    }
-
-    private static generateToken(username: string): string {
-        // Token simples para desenvolvimento
-        const timestamp = Date.now();
-        return `${username}_${timestamp}_hardcoded_token`;
     }
 }
