@@ -12,14 +12,13 @@ interface DashboardData {
 
 export class ItemDashboardPage extends BasePage {
     private pageName = 'item_dashboard';
-    private dashboardService: ItemDashboardService;
 
     constructor(
         extensionUri: any,
-        private storageService: StorageService
+        private storageService: StorageService,
+        private dashboardService: ItemDashboardService
     ) {
         super(extensionUri);
-        this.dashboardService = new ItemDashboardService();
     }
 
     getPageName(): string {
@@ -30,7 +29,9 @@ export class ItemDashboardPage extends BasePage {
         const userMetadata = this.storageService.getUserMetadata();
         const username = userMetadata?.username || 'Usuário';
 
-        const itemsByCategory = this.dashboardService.getItemsByCategory();
+        // Usa o cache (síncrono) - dados reais chegam via postMessage
+        // logo em seguida, através de sendItemsToWebview()
+        const itemsByCategory = this.dashboardService.getCachedItemsByCategory();
         const expandedCategories = this.dashboardService.getExpandedCategories(itemsByCategory);
 
         return {
@@ -62,7 +63,6 @@ export class ItemDashboardPage extends BasePage {
         const itemsHtml = categoryData.items.map((item: ItemData) => this.renderItemCard(item)).join('');
         const categoryIdClean = this.escapeHtml(categoryId).replace(/\s+/g, '-');
 
-        // Use pending_items directly from API response (only show if it exists)
         const pendingCountHtml = categoryData.pending_items !== undefined
             ? `<span class="category-count">${categoryData.pending_items} pendente${categoryData.pending_items !== 1 ? 's' : ''}</span>`
             : '';
@@ -97,7 +97,7 @@ export class ItemDashboardPage extends BasePage {
 
         const categoriesHtml = categoryIds.map(categoryId => {
             const categoryData = itemsByCategory[categoryId];
-            const isExpanded = expandedCategories[categoryId] === true; // default false
+            const isExpanded = expandedCategories[categoryId] === true;
             return this.renderCategoryGroup(categoryId, categoryData, isExpanded);
         }).join('');
 
@@ -120,7 +120,6 @@ export class ItemDashboardPage extends BasePage {
 
         const { username, itemsByCategory, expandedCategories } = data;
 
-        // Initialize all categories as collapsed by default
         Object.keys(itemsByCategory).forEach(category => {
             if (expandedCategories[category] === undefined) {
                 expandedCategories[category] = false;

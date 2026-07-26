@@ -17,8 +17,8 @@ export function registerItemCommands(
     // Refresh items command
     const refreshCommand = vscode.commands.registerCommand(
         'gpt-teacher.refreshItems',
-        () => {
-            sidebarProvider.sendItemsToWebview();
+        async () => {
+            await sidebarProvider.sendItemsToWebview();
             vscode.window.showInformationMessage('Items refreshed!');
         }
     );

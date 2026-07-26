@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { StorageService } from './services/StorageService';
 import { ChatService } from './services/ChatService';
 import { ChatCacheService } from './services/ChatCacheService';
+import { ItemDashboardService } from './services/ItemDashboardService';
 import { SidebarProvider } from './panels/SidebarProvider';
 import { registerAuthCommands } from './extension_commands/authCommands';
 import { registerItemCommands } from './extension_commands/itemCommands';
@@ -12,11 +13,17 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Initialize services
 	const storageService = new StorageService(context);
-	const chatService = new ChatService();
+	const itemDashboardService = new ItemDashboardService(storageService);
+	const chatService = new ChatService(storageService);
 	const chatCacheService = new ChatCacheService(context);
 
 	// Create sidebar provider
-	const sidebarProvider = new SidebarProvider(context.extensionUri, storageService, context);
+	const sidebarProvider = new SidebarProvider(
+		context.extensionUri,
+		storageService,
+		context,
+		itemDashboardService
+	);
 
 	// Register the webview view provider
 	context.subscriptions.push(
@@ -39,6 +46,7 @@ export function activate(context: vscode.ExtensionContext) {
 		sidebarProvider,
 		chatService,
 		chatCacheService,
+		itemDashboardService,
 		extensionUri: context.extensionUri
 	});
 
