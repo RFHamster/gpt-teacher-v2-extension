@@ -110,10 +110,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         this.updateSidebarWebViewHtml();
     }
 
-    public closeChat() {
+    public async closeChat() {
         console.log('[SidebarProvider] closeChat called');
         this._routeService.closeChat();
         this.updateSidebarWebViewHtml();
+        await this.sendItemsToWebview();
     }
 
     public sendChatMessage(message: any) {

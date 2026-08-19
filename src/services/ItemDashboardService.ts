@@ -30,21 +30,11 @@ export interface ProblemInfo {
 }
 
 export class ItemDashboardService {
-    // Cache em memória dos itens já buscados, pra consulta rápida
-    // por outros comandos (ex: abrir chat) sem rebuscar da API
-    private itemsCache: Map<string, ItemData> = new Map();
-
-    // Último resultado buscado, usado para renderização síncrona
-    // (BasePage.render() é síncrono por herança, não dá pra usar
-    // await ali - os dados reais chegam logo depois via postMessage)
-    private cachedItemsByCategory: ItemsByCategory = {};
-
     constructor(private storageService: StorageService) {}
 
     public async getItemsByCategory(): Promise<ItemsByCategory> {
         const token = this.storageService.getToken();
         if (!token) {
-            this.cachedItemsByCategory = {};
             return {};
         }
 
@@ -54,27 +44,17 @@ export class ItemDashboardService {
 
             for (const classroom of classrooms) {
                 const problems = await this.fetchProblems(classroom.id, token);
-                result[classroom.id] = this.groupProblemsByCategory(
+                result[classroom.id] = this.mapProblemsToCategory(
                     classroom.name,
                     problems
                 );
             }
 
-            this.cachedItemsByCategory = result;
             return result;
         } catch (error) {
             console.error('[ItemDashboardService] Erro ao buscar itens:', error);
-            return this.cachedItemsByCategory;
+            return {};
         }
-    }
-
-    /**
-     * Retorna o último resultado buscado, de forma síncrona.
-     * Usado na renderização inicial do HTML da sidebar, antes do
-     * fetch assíncrono de getItemsByCategory() completar.
-     */
-    public getCachedItemsByCategory(): ItemsByCategory {
-        return this.cachedItemsByCategory;
     }
 
     public getExpandedCategories(itemsByCategory: ItemsByCategory): ExpandedCategoriesState {
@@ -88,26 +68,59 @@ export class ItemDashboardService {
     }
 
     /**
-     * Retorna dados completos (id/title/description) de um item
-     * já buscado anteriormente via getItemsByCategory().
+     * Busca os dados de um problema direto da API (sem cache local).
      */
-    public getProblemInfo(itemId: string): ProblemInfo | undefined {
-        const item = this.itemsCache.get(itemId);
-        if (!item) {
+    public async getProblemInfo(itemId: string): Promise<ProblemInfo | undefined> {
+        const problem = await this.fetchProblemById(itemId);
+        if (!problem) {
             return undefined;
         }
         return {
-            id: item.id,
-            title: item.title,
-            description: item.description
+            id: problem.id,
+            title: problem.title,
+            description: problem.description
         };
     }
 
     /**
-     * Retorna o ItemData completo (usado pelo ItemWebviewPanel).
+     * Busca o ItemData completo de um problema direto da API (sem cache local).
      */
-    public getItemData(itemId: string): ItemData | undefined {
-        return this.itemsCache.get(itemId);
+    public async getItemData(itemId: string): Promise<ItemData | undefined> {
+        const problem = await this.fetchProblemById(itemId);
+        if (!problem) {
+            return undefined;
+        }
+        return {
+            id: problem.id,
+            title: problem.title,
+            description: problem.description,
+            miniDescription: problem.category || undefined,
+            is_done: false
+        };
+    }
+
+    private async fetchProblemById(problemId: string): Promise<ProblemPublic | undefined> {
+        const token = this.storageService.getToken();
+        if (!token) {
+            return undefined;
+        }
+
+        try {
+            const response = await fetch(
+                `${config.BACKEND_URL}/api/v1/problems/${problemId}`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+
+            if (!response.ok) {
+                console.error(`[ItemDashboardService] Falha ao buscar problema ${problemId}: ${response.status}`);
+                return undefined;
+            }
+
+            return await response.json() as ProblemPublic;
+        } catch (error) {
+            console.error('[ItemDashboardService] Erro ao buscar problema:', error);
+            return undefined;
+        }
     }
 
     private async fetchClassrooms(token: string): Promise<ClassroomPublic[]> {
@@ -120,14 +133,10 @@ export class ItemDashboardService {
             throw new Error(`Falha ao buscar turmas: ${response.status}`);
         }
 
-        const data = await response.json() as ClassroomPublic[];
-        console.log('[ItemDashboardService] Classrooms recebidas:', JSON.stringify(data));
-        return data;
+        return await response.json() as ClassroomPublic[];
     }
 
     private async fetchProblems(classroomId: string, token: string): Promise<ProblemPublic[]> {
-        console.log('[ItemDashboardService] Buscando problemas para classroomId:', classroomId);
-
         const response = await fetch(
             `${config.BACKEND_URL}/api/v1/classrooms/${classroomId}/problems`,
             { headers: { 'Authorization': `Bearer ${token}` } }
@@ -142,7 +151,7 @@ export class ItemDashboardService {
         return await response.json() as ProblemPublic[];
     }
 
-    private groupProblemsByCategory(classroomName: string, problems: ProblemPublic[]): CategoryData {
+    private mapProblemsToCategory(classroomName: string, problems: ProblemPublic[]): CategoryData {
         const items: ItemData[] = problems.map(p => ({
             id: p.id,
             title: p.title,
@@ -150,9 +159,6 @@ export class ItemDashboardService {
             miniDescription: p.category || undefined,
             is_done: false
         }));
-
-        // Popula o cache pra consulta posterior (ex: abrir chat)
-        items.forEach(item => this.itemsCache.set(item.id, item));
 
         return {
             title: classroomName,

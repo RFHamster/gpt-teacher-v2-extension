@@ -26,7 +26,7 @@ export function registerChatCommands(
         async (itemId: string) => {
             console.log('[chatCommands] openChat called with itemId:', itemId);
 
-            const problem = itemDashboardService.getProblemInfo(itemId);
+            const problem = await itemDashboardService.getProblemInfo(itemId);
 
             if (!problem) {
                 vscode.window.showErrorMessage('Não foi possível encontrar os dados deste problema.');
@@ -67,8 +67,9 @@ export function registerChatCommands(
             // Clear all chat cache
             await chatCacheService.clearChat();
 
-            // Close chat in sidebar
-            sidebarProvider.closeChat();
+            // Close chat in sidebar (troca de rota + rebusca os itens,
+            // já que não há mais cache local de itens)
+            await sidebarProvider.closeChat();
         }
     );
 
@@ -78,7 +79,7 @@ export function registerChatCommands(
         async (sessionId: string, itemId: string, content: string) => {
             console.log('[chatCommands] sendChatMessage called:', { sessionId, itemId, content });
 
-            const problem = itemDashboardService.getProblemInfo(itemId);
+            const problem = await itemDashboardService.getProblemInfo(itemId);
 
             if (!problem) {
                 vscode.window.showErrorMessage('Não foi possível encontrar os dados deste problema.');
@@ -122,8 +123,8 @@ export function registerChatCommands(
     // Open item from chat command
     const openItemFromChatCommand = vscode.commands.registerCommand(
         'gpt-teacher.openItemFromChat',
-        (itemId: string) => {
-            const item = itemDashboardService.getItemData(itemId);
+        async (itemId: string) => {
+            const item = await itemDashboardService.getItemData(itemId);
             if (item) {
                 ItemWebviewPanel.createOrShow(extensionUri, item);
             }

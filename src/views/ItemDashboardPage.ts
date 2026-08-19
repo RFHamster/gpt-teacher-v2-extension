@@ -29,9 +29,10 @@ export class ItemDashboardPage extends BasePage {
         const userMetadata = this.storageService.getUserMetadata();
         const username = userMetadata?.username || 'Usuário';
 
-        // Usa o cache (síncrono) - dados reais chegam via postMessage
-        // logo em seguida, através de sendItemsToWebview()
-        const itemsByCategory = this.dashboardService.getCachedItemsByCategory();
+        // Sem cache local: a renderização inicial (síncrona, por herdar
+        // de BasePage) sempre começa vazia. Os dados reais chegam logo
+        // em seguida via postMessage, através de sendItemsToWebview().
+        const itemsByCategory: ItemsByCategory = {};
         const expandedCategories = this.dashboardService.getExpandedCategories(itemsByCategory);
 
         return {
