@@ -21,13 +21,9 @@ export function registerAuthCommands(
         () => {
             const loginPanel = LoginWebviewPanel.createOrShow(extensionUri, storageService);
 
-            // When login is successful, update sidebar
+            
             loginPanel.onLoginSuccess(async () => {
                 vscode.window.showInformationMessage('Bem-vindo ao GPT Teacher!');
-                // Renderiza o HTML base primeiro (troca welcome -> dashboard,
-                // vazio). Sem cache local, gerar o HTML de novo DEPOIS do
-                // postMessage apagaria a lista recém-preenchida - por isso
-                // a ordem aqui é importante.
                 sidebarProvider.updateSidebarWebViewHtml();
                 await sidebarProvider.sendItemsToWebview();
             });
@@ -46,9 +42,7 @@ export function registerAuthCommands(
 
             if (confirm === 'Sim') {
                 await storageService.logout();
-                // Aqui a ordem não importa tanto (dashboard fica vazio de
-                // qualquer forma após logout), mas mantém o mesmo padrão
-                // por consistência.
+               
                 sidebarProvider.updateSidebarWebViewHtml();
                 await sidebarProvider.sendItemsToWebview();
                 vscode.window.showInformationMessage('Logout realizado com sucesso!');
