@@ -1,107 +1,198 @@
 import * as vscode from 'vscode';
+import { StorageService } from './StorageService';
 import { ChatSessionMetadata, ChatMessage } from '../models/ChatData';
+import { config } from '../config';
+
+interface ProblemInfo {
+    id: string;
+    title: string;
+    description: string;
+}
+
+interface StudentSessionPublic {
+    id: string;
+    student_id: string;
+    problem_id: string;
+    status: 'open' | 'closed';
+    started_at: string;
+    closed_at: string | null;
+}
+
+interface ChatMessagePublic {
+    id: string;
+    session_id: string;
+    problem_id: string;
+    type: 'user' | 'ai';
+    content: string;
+    code: string | null;
+    code_review: string | null;
+    created_at: string;
+}
 
 export class ChatService {
+    constructor(private storageService: StorageService) {}
+
     /**
-     * Get or create a chat session for an item
-     * TODO: Replace with actual API call
+     * Obtém a sessão ativa do aluno para este problema, ou cria uma nova.
      */
-    public getSession(itemId: string): ChatSessionMetadata {
-        console.log('[ChatService] getSession called for itemId:', itemId);
+    public async getSession(problem: ProblemInfo): Promise<ChatSessionMetadata> {
+        const token = this.getToken();
 
-        // Mock session data (will come from API in the future)
-        const session = {
-            sessionId: `session-${itemId}`,
-            itemId: itemId,
-            itemTitle: `Item ${itemId}`, // Will be set from item data
-            startedAt: new Date().toISOString(),
-            status: 'active' as const
+        const active = await this.fetchActiveSession(token);
+
+        let session: StudentSessionPublic;
+
+        if (active && active.problem_id === problem.id) {
+            session = active;
+        } else {
+            session = await this.createSession(problem.id, token);
+        }
+
+        return {
+            sessionId: session.id,
+            itemId: problem.id,
+            itemTitle: problem.title,
+            startedAt: session.started_at,
+            status: session.status === 'open' ? 'active' : 'ended'
         };
-
-        console.log('[ChatService] Returning session:', session);
-        return session;
     }
 
     /**
-     * Get initial messages for a session
-     * TODO: Replace with actual API call
+     * Busca o histórico de mensagens de uma sessão.
      */
-    public getMessages(sessionId: string): ChatMessage[] {
-        console.log('[ChatService] getMessages called for sessionId:', sessionId);
+    public async getMessages(sessionId: string): Promise<ChatMessage[]> {
+        const token = this.getToken();
 
-        // Mock initial messages (will come from API in the future)
-        const messages = [
+        const response = await fetch(
+            `${config.BACKEND_URL}/api/v1/student-session/${sessionId}/chat-messages`,
             {
-                id: 'msg-welcome',
-                content: 'Olá! Como posso ajudar você com este item?',
-                sender: 'assistant' as const,
-                timestamp: new Date().toISOString()
+                headers: { 'Authorization': `Bearer ${token}` }
             }
-        ];
+        );
 
-        console.log('[ChatService] Returning messages:', messages);
-        return messages;
+        if (!response.ok) {
+            throw new Error(`Falha ao buscar mensagens: ${response.status}`);
+        }
+
+        const messages = await response.json() as ChatMessagePublic[];
+
+        return messages.map(m => this.mapToChatMessage(m));
     }
 
     /**
-     * Send a message in a session (mocked - returns assistant response)
-     * TODO: Replace with actual API call
+     * Envia uma mensagem e retorna a resposta da IA.
+     * Precisa do título/descrição do problema, exigidos pelo AgentInput.
      */
-    public async sendMessage(sessionId: string, content: string): Promise<ChatMessage> {
-        console.log('[ChatService] sendMessage called with:', { sessionId, content });
+    public async sendMessage(
+        sessionId: string,
+        content: string,
+        problem: ProblemInfo
+    ): Promise<ChatMessage> {
+        const token = this.getToken();
+        const editorCode = this.getCurrentEditorCode();
 
-        // Get current code from active editor
-        const currentCode = this.getCurrentEditorCode();
-        console.log('[ChatService] Current editor code:', currentCode);
-
-        // Simulate API delay
-        await this.delay(500);
-
-        // Mock assistant response (will come from API in the future)
-        const assistantMessage: ChatMessage = {
-            id: `msg-${Date.now()}-assistant`,
-            content: this.generateMockResponse(content),
-            sender: 'assistant',
-            timestamp: new Date().toISOString()
+        const body = {
+            problem_title: problem.title,
+            session_id: sessionId,
+            problem_description: problem.description,
+            student_code: editorCode?.code || '',
+            user_message: content
         };
 
-        console.log('[ChatService] Returning assistant message:', assistantMessage);
-        return assistantMessage;
+        const response = await fetch(
+            `${config.BACKEND_URL}/api/v1/call-agent/student-session/${sessionId}/chat-messages`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            }
+        );
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => null) as { detail?: string } | null;
+            throw new Error(errorData?.detail || `Falha ao enviar mensagem: ${response.status}`);
+        }
+
+        const aiMessage = await response.json() as ChatMessagePublic;
+
+        return this.mapToChatMessage(aiMessage);
     }
 
     /**
-     * Close a chat session
-     * TODO: Replace with actual API call
+     * Fecha a sessão de chat.
      */
     public async closeSession(sessionId: string): Promise<void> {
-        // Simulate API delay
-        await this.delay(100);
+        const token = this.getToken();
 
-        // In the future, this will call API to end the session
-        console.log(`Session ${sessionId} closed`);
+        const response = await fetch(
+            `${config.BACKEND_URL}/api/v1/student-sessions/${sessionId}/close`,
+            {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            }
+        );
+
+        if (!response.ok) {
+            console.error(`[ChatService] Falha ao fechar sessão: ${response.status}`);
+        }
     }
 
-    /**
-     * Generate a mock assistant response based on user input
-     */
-    private generateMockResponse(userMessage: string): string {
-        const responses = [
-            'Entendi sua dúvida! Vou te explicar melhor sobre isso.',
-            'Boa pergunta! Deixa eu te ajudar com isso.',
-            'Claro! Aqui está uma explicação detalhada...',
-            'Isso é um ponto importante. Vamos por partes:',
-            'Perfeito! Vou te mostrar como fazer isso passo a passo.',
-        ];
+    private async fetchActiveSession(token: string): Promise<StudentSessionPublic | null> {
+        const response = await fetch(
+            `${config.BACKEND_URL}/api/v1/student-sessions/active`,
+            {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }
+        );
 
-        // Simple response selection based on message length
-        const index = userMessage.length % responses.length;
-        return responses[index];
+        if (!response.ok) {
+            return null;
+        }
+
+        const data = await response.json();
+        return data as StudentSessionPublic | null;
     }
 
-    /**
-     * Get code from currently active editor in VSCode
-     * Returns selected text if there's a selection, otherwise returns full document
-     */
+    private async createSession(problemId: string, token: string): Promise<StudentSessionPublic> {
+        const response = await fetch(
+            `${config.BACKEND_URL}/api/v1/student-sessions`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ problem_id: problemId })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Falha ao criar sessão: ${response.status}`);
+        }
+
+        return await response.json() as StudentSessionPublic;
+    }
+
+    private mapToChatMessage(m: ChatMessagePublic): ChatMessage {
+        return {
+            id: m.id,
+            content: m.content,
+            sender: m.type === 'ai' ? 'assistant' : 'user',
+            timestamp: m.created_at
+        };
+    }
+
+    private getToken(): string {
+        const token = this.storageService.getToken();
+        if (!token) {
+            throw new Error('Usuário não autenticado');
+        }
+        return token;
+    }
+
     private getCurrentEditorCode(): { code: string; fileName: string; selection: boolean } | null {
         const editor = vscode.window.activeTextEditor;
 
@@ -113,7 +204,6 @@ export class ChatService {
         const document = editor.document;
         const selection = editor.selection;
 
-        // Check if there's a selection
         if (!selection.isEmpty) {
             const selectedText = document.getText(selection);
             return {
@@ -123,19 +213,11 @@ export class ChatService {
             };
         }
 
-        // Return full document if no selection
         const fullText = document.getText();
         return {
             code: fullText,
             fileName: document.fileName,
             selection: false
         };
-    }
-
-    /**
-     * Utility function to simulate async delay
-     */
-    private delay(ms: number): Promise<void> {
-        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }

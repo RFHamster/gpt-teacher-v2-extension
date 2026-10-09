@@ -2,14 +2,15 @@ import * as vscode from 'vscode';
 import { SidebarProvider } from '../panels/SidebarProvider';
 import { ChatService } from '../services/ChatService';
 import { ChatCacheService } from '../services/ChatCacheService';
+import { ItemDashboardService } from '../services/ItemDashboardService';
 import { ItemWebviewPanel } from '../panels/ItemWebviewPanel';
-import { mockItemsByCategory } from '../models/ItemData';
 import { ChatMessage } from '../models/ChatData';
 
 interface ChatCommandDependencies {
     sidebarProvider: SidebarProvider;
     chatService: ChatService;
     chatCacheService: ChatCacheService;
+    itemDashboardService: ItemDashboardService;
     extensionUri: vscode.Uri;
 }
 
@@ -17,7 +18,7 @@ export function registerChatCommands(
     context: vscode.ExtensionContext,
     deps: ChatCommandDependencies
 ): void {
-    const { sidebarProvider, chatService, chatCacheService, extensionUri } = deps;
+    const { sidebarProvider, chatService, chatCacheService, itemDashboardService, extensionUri } = deps;
 
     // Open chat command
     const openChatCommand = vscode.commands.registerCommand(
@@ -25,17 +26,12 @@ export function registerChatCommands(
         async (itemId: string) => {
             console.log('[chatCommands] openChat called with itemId:', itemId);
 
-            // Find item title from mock data
-            let itemTitle = `Item ${itemId}`;
-            for (const categoryId in mockItemsByCategory) {
-                const category = mockItemsByCategory[categoryId];
-                const item = category.items.find(i => i.id === itemId);
-                if (item) {
-                    itemTitle = item.title;
-                    break;
-                }
+            const problem = await itemDashboardService.getProblemInfo(itemId);
+
+            if (!problem) {
+                vscode.window.showErrorMessage('Não foi possível encontrar os dados deste problema.');
+                return;
             }
-            console.log('[chatCommands] Item title:', itemTitle);
 
             // Get or create session from cache
             let cachedData = chatCacheService.getChatData(itemId);
@@ -44,12 +40,11 @@ export function registerChatCommands(
             if (!cachedData) {
                 console.log('[chatCommands] No cached data, creating new session');
 
-                // Create new session
-                const session = chatService.getSession(itemId);
-                session.itemTitle = itemTitle;
+                // Create new session (busca ativa ou cria nova, via API)
+                const session = await chatService.getSession(problem);
 
-                // Get initial messages from API (mocked)
-                const messages = chatService.getMessages(session.sessionId);
+                // Get initial messages from API
+                const messages = await chatService.getMessages(session.sessionId);
 
                 console.log('[chatCommands] Saving to cache:', { session, messages });
 
@@ -72,8 +67,9 @@ export function registerChatCommands(
             // Clear all chat cache
             await chatCacheService.clearChat();
 
-            // Close chat in sidebar
-            sidebarProvider.closeChat();
+            // Close chat in sidebar (troca de rota + rebusca os itens,
+            // já que não há mais cache local de itens)
+            await sidebarProvider.closeChat();
         }
     );
 
@@ -82,6 +78,13 @@ export function registerChatCommands(
         'gpt-teacher.sendChatMessage',
         async (sessionId: string, itemId: string, content: string) => {
             console.log('[chatCommands] sendChatMessage called:', { sessionId, itemId, content });
+
+            const problem = await itemDashboardService.getProblemInfo(itemId);
+
+            if (!problem) {
+                vscode.window.showErrorMessage('Não foi possível encontrar os dados deste problema.');
+                return;
+            }
 
             // Add user message to cache
             const userMessage: ChatMessage = {
@@ -98,32 +101,32 @@ export function registerChatCommands(
             console.log('[chatCommands] Sending user message to webview');
             sidebarProvider.sendChatMessage(userMessage);
 
-            // Send to API and get assistant response (mocked)
+            // Send to API and get assistant response
             console.log('[chatCommands] Sending message to API...');
-            const assistantMessage = await chatService.sendMessage(sessionId, content);
+            try {
+                const assistantMessage = await chatService.sendMessage(sessionId, content, problem);
 
-            // Add assistant message to cache
-            console.log('[chatCommands] Adding assistant message to cache:', assistantMessage);
-            await chatCacheService.addMessage(itemId, assistantMessage);
+                // Add assistant message to cache
+                console.log('[chatCommands] Adding assistant message to cache:', assistantMessage);
+                await chatCacheService.addMessage(itemId, assistantMessage);
 
-            // Send assistant message to webview
-            console.log('[chatCommands] Sending assistant message to webview');
-            sidebarProvider.sendChatMessage(assistantMessage);
+                // Send assistant message to webview
+                console.log('[chatCommands] Sending assistant message to webview');
+                sidebarProvider.sendChatMessage(assistantMessage);
+            } catch (error) {
+                console.error('[chatCommands] Erro ao enviar mensagem:', error);
+                vscode.window.showErrorMessage('Não foi possível obter resposta da IA. Tente novamente.');
+            }
         }
     );
 
     // Open item from chat command
     const openItemFromChatCommand = vscode.commands.registerCommand(
         'gpt-teacher.openItemFromChat',
-        (itemId: string) => {
-            // Find item data
-            for (const categoryId in mockItemsByCategory) {
-                const category = mockItemsByCategory[categoryId];
-                const item = category.items.find(i => i.id === itemId);
-                if (item) {
-                    ItemWebviewPanel.createOrShow(extensionUri, item);
-                    break;
-                }
+        async (itemId: string) => {
+            const item = await itemDashboardService.getItemData(itemId);
+            if (item) {
+                ItemWebviewPanel.createOrShow(extensionUri, item);
             }
         }
     );

@@ -4,6 +4,7 @@ import { WelcomePage } from '../views/WelcomePage';
 import { ItemDashboardPage } from '../views/ItemDashboardPage';
 import { ChatPage } from '../views/ChatPage';
 import { StorageService } from './StorageService';
+import { ItemDashboardService } from './ItemDashboardService';
 
 export type RouteType = 'welcome' | 'item_dashboard' | 'chat';
 
@@ -21,7 +22,6 @@ export interface RouteContext {
 }
 
 type PageFactory = (context: RouteContext) => BasePage;
-
 type RouteResolver = (state: RouteState) => boolean;
 
 interface RouteConfig {
@@ -34,9 +34,6 @@ export class RouteService {
     private state: RouteState;
 
     private readonly routes: Map<RouteType, RouteConfig> = new Map([
-        // Priority: quanto maior, mais priorit�rio (checado primeiro)
-
-        // Chat tem prioridade máxima quando ativo
         ['chat', {
             priority: 100,
             resolver: (state) => state.is_authenticated && state.is_on_chat,
@@ -45,24 +42,23 @@ export class RouteService {
             }
         }],
 
-        // Dashboard para usu�rios autenticados
         ['item_dashboard', {
             priority: 50,
             resolver: (state) => state.is_authenticated,
             factory: ({ extensionUri, storageService }) =>
-                new ItemDashboardPage(extensionUri, storageService)
+                new ItemDashboardPage(extensionUri, storageService, this.itemDashboardService)
         }],
 
-        // Welcome como fallback (menor prioridade)
         ['welcome', {
             priority: 0,
-            resolver: () => true, // sempre aceita (fallback)
+            resolver: () => true,
             factory: ({ extensionUri }) => new WelcomePage(extensionUri)
         }]
     ]);
 
     constructor(
-        private readonly storageService: StorageService
+        private readonly storageService: StorageService,
+        private readonly itemDashboardService: ItemDashboardService
     ) {
         this.state = this.initializeState();
     }
@@ -108,18 +104,15 @@ export class RouteService {
     private resolveRoute(): RouteType {
         this.syncState();
 
-        // Ordena as rotas por prioridade (maior primeiro)
         const sortedRoutes = Array.from(this.routes.entries())
             .sort(([, a], [, b]) => b.priority - a.priority);
 
-        // Retorna a primeira rota que satisfaz a condi��o
         for (const [routeType, config] of sortedRoutes) {
             if (config.resolver(this.state)) {
                 return routeType;
             }
         }
 
-        // Fallback para welcome (n�o deve acontecer devido ao resolver: () => true)
         return 'welcome';
     }
 

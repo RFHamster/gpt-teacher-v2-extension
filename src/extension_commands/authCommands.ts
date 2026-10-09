@@ -21,11 +21,11 @@ export function registerAuthCommands(
         () => {
             const loginPanel = LoginWebviewPanel.createOrShow(extensionUri, storageService);
 
-            // When login is successful, update sidebar
-            loginPanel.onLoginSuccess(() => {
+            
+            loginPanel.onLoginSuccess(async () => {
                 vscode.window.showInformationMessage('Bem-vindo ao GPT Teacher!');
-                sidebarProvider.sendItemsToWebview();
                 sidebarProvider.updateSidebarWebViewHtml();
+                await sidebarProvider.sendItemsToWebview();
             });
         }
     );
@@ -42,8 +42,9 @@ export function registerAuthCommands(
 
             if (confirm === 'Sim') {
                 await storageService.logout();
-                sidebarProvider.sendItemsToWebview();
+               
                 sidebarProvider.updateSidebarWebViewHtml();
+                await sidebarProvider.sendItemsToWebview();
                 vscode.window.showInformationMessage('Logout realizado com sucesso!');
             }
         }

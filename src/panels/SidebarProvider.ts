@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { StorageService } from '../services/StorageService';
-import { mockItemsByCategory } from '../models/ItemData';
+import { ItemDashboardService } from '../services/ItemDashboardService';
 import { RouteService } from '../services/RouteService';
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
@@ -11,9 +11,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     constructor(
         private readonly _extensionUri: vscode.Uri,
         private readonly _storageService: StorageService,
-        private readonly _context: vscode.ExtensionContext
+        private readonly _context: vscode.ExtensionContext,
+        private readonly _itemDashboardService: ItemDashboardService
     ) {
-        this._routeService = new RouteService(_storageService);
+        this._routeService = new RouteService(_storageService, _itemDashboardService);
     }
 
     public resolveWebviewView(webviewView: vscode.WebviewView) {
@@ -26,6 +27,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
         this.updateSidebarWebViewHtml();
 
+        // Busca os dados reais (turmas/problemas) em segundo plano
+        // e atualiza o webview via postMessage quando chegarem
+        this.sendItemsToWebview();
 
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(async (data) => {
@@ -63,16 +67,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         });
     }
 
-    public sendItemsToWebview() {
+    public async sendItemsToWebview() {
         if (this._view) {
             const isAuthenticated = this._storageService.isAuthenticated();
             const userMetadata = this._storageService.getUserMetadata();
+
+            const itemsByCategory = isAuthenticated
+                ? await this._itemDashboardService.getItemsByCategory()
+                : {};
 
             this._view.webview.postMessage({
                 type: 'update',
                 isAuthenticated,
                 username: userMetadata?.username,
-                itemsByCategory: mockItemsByCategory
+                itemsByCategory
             });
         }
     }
@@ -102,10 +110,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         this.updateSidebarWebViewHtml();
     }
 
-    public closeChat() {
+    public async closeChat() {
         console.log('[SidebarProvider] closeChat called');
         this._routeService.closeChat();
         this.updateSidebarWebViewHtml();
+        await this.sendItemsToWebview();
     }
 
     public sendChatMessage(message: any) {
