@@ -55,6 +55,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
                     vscode.commands.executeCommand('gpt-teacher.openItemFromChat', data.itemId);
                     break;
                 }
+                case 'refresh': {
+                    this.sendItemsToWebview();
+                    break;
+                }
                 case 'login': {
                     vscode.commands.executeCommand('gpt-teacher.login');
                     break;

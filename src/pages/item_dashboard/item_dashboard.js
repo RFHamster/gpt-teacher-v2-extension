@@ -122,6 +122,15 @@
             });
         }
 
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                refreshBtn.style.opacity = '0.4';
+                refreshBtn.disabled = true;
+                vscode.postMessage({ type: 'refresh' });
+            });
+        }
+
         attachItemListListeners();
     }
 
@@ -136,6 +145,12 @@
             if (itemsList) {
                 itemsList.innerHTML = renderItemsList(message.itemsByCategory);
                 attachItemListListeners();
+            }
+            // Reabilita o botão de refresh após receber dados
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) {
+                refreshBtn.style.opacity = '1';
+                refreshBtn.disabled = false;
             }
         }
     });
