@@ -134,7 +134,10 @@ export class ItemDashboardPage extends BasePage {
                 <div class="user-info">
                     <span class="username">👤 <span id="usernameText">${this.escapeHtml(username)}</span></span>
                 </div>
-                <button class="btn btn-secondary" id="logoutBtn">Sair</button>
+                <div class="header-actions">
+                    <button class="btn-icon" id="refreshBtn" title="Atualizar listas">↻</button>
+                    <button class="btn btn-secondary" id="logoutBtn">Sair</button>
+                </div>
             </div>
             <div class="items-list" id="itemsList">
                 ${itemsListHtml}

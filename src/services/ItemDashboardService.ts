@@ -12,12 +12,22 @@ interface ClassroomPublic {
     teacher_id: string;
 }
 
+interface ExerciseListPublic {
+    id: string;
+    classroom_id: string;
+    name: string;
+    description: string | null;
+    deadline: string | null;
+    created_at: string;
+}
+
 interface ProblemPublic {
     id: string;
     title: string;
     description: string;
     category: string | null;
     classroom_id: string;
+    list_id: string | null;
     file_path: string | null;
     is_sandbox: boolean;
     created_by_student_id: string | null;
@@ -43,11 +53,24 @@ export class ItemDashboardService {
             const result: ItemsByCategory = {};
 
             for (const classroom of classrooms) {
-                const problems = await this.fetchProblems(classroom.id, token);
-                result[classroom.id] = this.mapProblemsToCategory(
-                    classroom.name,
-                    problems
-                );
+                const lists = await this.fetchLists(classroom.id, token);
+                if (lists.length === 0) {
+                    continue;
+                }
+                const allProblems = await this.fetchProblems(classroom.id, token);
+
+                for (const list of lists) {
+                    const listProblems = allProblems.filter(
+                        p => p.list_id === list.id && !p.is_sandbox
+                    );
+                    const items = listProblems.map(p => this.mapProblemToItem(p));
+                    const key = `${classroom.id}__${list.id}`;
+                    result[key] = {
+                        title: `${classroom.name} › ${list.name}`,
+                        items,
+                        pending_items: items.length,
+                    };
+                }
             }
 
             return result;
@@ -59,17 +82,12 @@ export class ItemDashboardService {
 
     public getExpandedCategories(itemsByCategory: ItemsByCategory): ExpandedCategoriesState {
         const expandedState: ExpandedCategoriesState = {};
-
         Object.keys(itemsByCategory).forEach(category => {
             expandedState[category] = false;
         });
-
         return expandedState;
     }
 
-    /**
-     * Busca os dados de um problema direto da API (sem cache local).
-     */
     public async getProblemInfo(itemId: string): Promise<ProblemInfo | undefined> {
         const problem = await this.fetchProblemById(itemId);
         if (!problem) {
@@ -78,13 +96,10 @@ export class ItemDashboardService {
         return {
             id: problem.id,
             title: problem.title,
-            description: problem.description
+            description: problem.description,
         };
     }
 
-    /**
-     * Busca o ItemData completo de um problema direto da API (sem cache local).
-     */
     public async getItemData(itemId: string): Promise<ItemData | undefined> {
         const problem = await this.fetchProblemById(itemId);
         if (!problem) {
@@ -95,7 +110,17 @@ export class ItemDashboardService {
             title: problem.title,
             description: problem.description,
             miniDescription: problem.category || undefined,
-            is_done: false
+            is_done: false,
+        };
+    }
+
+    private mapProblemToItem(p: ProblemPublic): ItemData {
+        return {
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            miniDescription: p.category || undefined,
+            is_done: false,
         };
     }
 
@@ -136,6 +161,25 @@ export class ItemDashboardService {
         return await response.json() as ClassroomPublic[];
     }
 
+    private async fetchLists(classroomId: string, token: string): Promise<ExerciseListPublic[]> {
+        try {
+            const response = await fetch(
+                `${config.BACKEND_URL}/api/v1/classrooms/${classroomId}/lists`,
+                { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+
+            if (!response.ok) {
+                console.warn(`[ItemDashboardService] Sem listas para turma ${classroomId}: ${response.status}`);
+                return [];
+            }
+
+            return await response.json() as ExerciseListPublic[];
+        } catch (error) {
+            console.warn('[ItemDashboardService] Erro ao buscar listas:', error);
+            return [];
+        }
+    }
+
     private async fetchProblems(classroomId: string, token: string): Promise<ProblemPublic[]> {
         const response = await fetch(
             `${config.BACKEND_URL}/api/v1/classrooms/${classroomId}/problems`,
@@ -149,21 +193,5 @@ export class ItemDashboardService {
         }
 
         return await response.json() as ProblemPublic[];
-    }
-
-    private mapProblemsToCategory(classroomName: string, problems: ProblemPublic[]): CategoryData {
-        const items: ItemData[] = problems.map(p => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            miniDescription: p.category || undefined,
-            is_done: false
-        }));
-
-        return {
-            title: classroomName,
-            items,
-            pending_items: items.length
-        };
     }
 }
